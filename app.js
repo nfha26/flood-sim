@@ -274,7 +274,8 @@ function initApp() {
       ' — relatif terhadap nilai DEM sumber (meter; EGM2008 per spesifikasi produk BIG, ' +
       'file lokal tidak mendeklarasikan datum sendiri). Bukan prakiraan; tanpa aliran, durasi, ' +
       'infiltrasi, dan drainase. Sel NoData dikecualikan.';
-    document.getElementById('flood-legend-section').hidden = false;
+    document.getElementById('flood-legend-section').hidden =
+      !document.getElementById('flood-toggle').checked;
     refreshLegendPanel();
   }
 
@@ -749,6 +750,8 @@ function initApp() {
                 map.removeLayer(waterLevelState.floodOverlay);
               }
             }
+            document.getElementById('flood-legend-section').hidden = !floodToggle.checked;
+            refreshLegendPanel();
           });
           floodOpacity.value = 100;
           floodOpacityValue.textContent = '100%';
