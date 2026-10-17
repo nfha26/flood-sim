@@ -21,6 +21,24 @@
       <dl id="dem-meta-list"></dl>
       <p id="dem-meta-note" class="panel-note"></p>
     </aside>
+    <aside id="dem-layer" class="panel" hidden>
+      <h2>Layer Elevasi DEM</h2>
+      <label class="control-row">
+        <input type="checkbox" id="dem-toggle" checked>
+        Tampilkan elevasi DEM
+      </label>
+      <div class="control-row">
+        <label for="dem-opacity">Opasitas</label>
+        <input type="range" id="dem-opacity" min="0" max="100" step="1" value="100">
+        <output id="dem-opacity-value" for="dem-opacity">100%</output>
+      </div>
+    </aside>
+    <aside id="dem-legend" class="panel" hidden>
+      <h2>Legenda — Elevasi DEM</h2>
+      <p class="legend-unit">nilai DEM sumber — meter (DEMNAS, datum vertikal EGM2008)</p>
+      <div id="legend-rows"></div>
+      <p id="legend-note" class="panel-note"></p>
+    </aside>
   </main>
   <div id="map-status" hidden></div>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"

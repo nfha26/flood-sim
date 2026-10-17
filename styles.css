@@ -78,6 +78,69 @@ body {
   font-size: 12px;
 }
 
+#dem-layer {
+  right: auto;
+  left: 12px;
+  width: 250px;
+}
+
+#dem-legend {
+  right: auto;
+  left: 12px;
+  top: auto;
+  bottom: 12px;
+  width: 270px;
+}
+
+.control-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 13px;
+}
+
+.control-row input[type="range"] {
+  flex: 1;
+  min-width: 0;
+}
+
+.control-row output {
+  min-width: 34px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: #555;
+}
+
+.legend-unit {
+  margin: 0 0 6px;
+  font-size: 12px;
+  color: #333;
+}
+
+.legend-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.legend-swatch {
+  width: 24px;
+  height: 14px;
+  border: 1px solid #999;
+  flex: none;
+}
+
+.legend-label {
+  flex: 1;
+}
+
+.legend-pct {
+  color: #555;
+  font-variant-numeric: tabular-nums;
+}
+
 #map-status {
   position: fixed;
   top: 70px;

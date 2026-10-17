@@ -4,7 +4,7 @@ Berkas ini mencatat asal-usul dan metadata data yang dipakai di proyek ini.
 Aturan mainnya (lihat `AGENTS.md`): **jangan mengarang nilai**. Field yang tidak bisa
 diverifikasi dari file atau dari pernyataan tertulis pengguna ditulis **"belum diketahui"**.
 
-Status penulisan: Mission 03 (Research & Document Data Sources).
+Status penulisan: terakhir diperbarui pada Mission 05 (Visualize Elevation).
 
 ---
 
@@ -40,12 +40,22 @@ File: `data/DEMNAS_ok.tif`
 Catatan: nilai resolusi (8,3444 m) sedikit berbeda dari nama produk "8,35 m" karena file ini
 hasil clip/reprojeksi, bukan lembar mentah.
 
-### 1c. Field yang belum diketahui
+### 1c. Field lain: status verifikasi (diperbarui Mission 05)
+
+**Terverifikasi dari sumber resmi BIG (diakses 17 Oktober 2026):**
+
+| Field | Nilai | Sumber verifikasi |
+|---|---|---|
+| Satuan nilai elevasi | **meter** | `heightModelInfo.heightUnit: "meter"` pada layanan resmi BIG <https://geoservices.big.go.id/raster/rest/services/DEMNAS/DEM_Indonesia/ImageServer?f=pjson> |
+| Datum vertikal | **EGM2008 (geoid)** | `heightModelInfo.vertCRS: "EGM2008_Geoid"` pada layanan yang sama; halaman produk BIG <https://www.big.go.id/content/product/demnas>: "Resolusi spasial DEMNAS adalah 0.27-arcsecond, dengan menggunakan datum vertikal EGM2008" |
+
+Catatan jujur: verifikasi ini berlaku untuk **produk DEMNAS** (spesifikasi resmi BIG), bukan dari
+deklarasi di dalam file lokal — file ini hasil clip/reprojeksi dan tidak mendeklarasikan satuan
+atau datum vertikal sendiri. Clip/reprojeksi tidak mengubah satuan vertikal. Field berikut
+**masih belum diketahui**:
 
 | Field | Status | Alasan / catatan |
 |---|---|---|
-| Datum vertikal | **belum diketahui** | Tidak dideklarasikan di dalam file. Pernyataan pengguna: DEMNAS "biasanya EGM2008" — ini **asumsi umum yang belum terverifikasi**, bukan fakta dari file atau dokumen resmi. |
-| Satuan nilai elevasi | **belum diketahui** | Tidak dideklarasikan di dalam file. Umumnya meter untuk produk DEMNAS, tetapi belum terverifikasi dari file/metadata resmi. |
 | Lisensi resmi DEMNAS | **belum diketahui** | Belum diverifikasi dari dokumen/ketentuan resmi BIG. Pernyataan pengguna: file ini boleh dipakai untuk proyek ini; pengguna juga menyatakan DEM selain DEMNAS diizinkan. |
 | Tautan unduhan resmi / tanggal pengambilan lembar | **belum diketahui** | Tidak ada di dalam file. |
 | Parameter proses clip (wilayah klip, alat, tanggal proses) | **belum diketahui** | Hanya diketahui bahwa file adalah hasil clip + reprojeksi. |
@@ -93,6 +103,42 @@ induk; resolusi ground efektif sedikit berbeda; satuan elevasi dan datum vertika
 | 113,66000, -7,75500 | 141, 623 | 87,4228515625 | 87,4440155029 | 0,021 |
 | 113,69600, -7,73400 | 621, 340 | 9,6680259705 | 9,2470912933 | 0,421 |
 | 113,73500, -7,71500 | 1142, 84 | -2,9059779644 | -2,9055809975 | < 0,001 |
+
+---
+
+### 1e. Sebaran nilai elevasi turunan (Mission 05)
+
+Dihitung dari `data/DEMNAS_ok_besuki.geotiff` dengan rasterio (852.948 sel, **0 sel NoData**):
+
+| Statistik | Nilai (meter, EGM2008 — lihat 1c) |
+|---|---|
+| Minimum · maksimum · rerata | -4,4267 · 237,7506 · 13,2261 |
+| Sel ≤ 0 | 273.515 (**32,07%**), semuanya < 0; rentang -4,4267 … -0,0004 |
+| Sel < -0,5 · antara -0,5 dan 0 | 267.949 · 5.566 |
+| Percentil 1 · 5 · 25 · 50 · 75 · 95 · 99 | -3,185 · -2,933 · -1,720 · 6,871 · 16,320 · 51,380 · 150,031 |
+
+Histogram:
+
+| Kelas | Sel | % |
+|---|---:|---:|
+| -4,43 … 0 | 273.515 | 32,07 |
+| 0 … 1 | 9.161 | 1,07 |
+| 1 … 5 | 81.825 | 9,59 |
+| 5 … 10 | 155.636 | 18,25 |
+| 10 … 25 | 218.155 | 25,58 |
+| 25 … 50 | 71.158 | 8,34 |
+| 50 … 100 | 22.421 | 2,63 |
+| 100 … 150 | 12.538 | 1,47 |
+| 150 … 237,76 | 8.539 | 1,00 |
+
+Catatan interpretasi: sepertiga wilayah bernilai negatif, konsisten dengan dasar laut di sekitar
+wilayah studi; BIG menyatakan DEMNAS mencakup topografi dasar laut (berita BIG, 13 Juli 2019,
+<https://www.big.go.id/news/2019/07/13/demnas-dan-bencana>).
+
+**Titik patah color ramp (keputusan tampilan, Mission 05):** `0 · 10 · 25 · 50 · 100 · 150`
+menghasilkan 7 kelas dengan kumulatif 32,07% · 60,98% · 86,56% · 94,90% · 97,53% · 99,00% —
+dipilih agar sebaran warna terbaca pada distribusi yang miring (median 6,871). Titik patah dan
+warna adalah konstanta tampilan di `app.js`, bukan nilai data.
 
 ---
 
