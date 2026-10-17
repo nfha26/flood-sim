@@ -31,10 +31,52 @@ body {
   position: relative;
   flex: 1;
   min-height: 0;
+  display: flex;
+  flex-direction: row;
+}
+
+.map-container {
+  flex: 1;
+  position: relative;
+  min-width: 0;
 }
 
 #map {
   height: 100%;
+  width: 100%;
+}
+
+.sidebar {
+  width: 340px;
+  max-height: 100%;
+  overflow-y: auto;
+  padding: 12px;
+  background: #f7f7f7;
+  border-right: 1px solid #ddd;
+  box-sizing: border-box;
+  font-size: 13px;
+}
+
+.sidebar section {
+  margin-bottom: 12px;
+  padding: 10px;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+}
+
+.sidebar h2 {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+
+.sidebar h3 {
+  margin: 0 0 6px;
+  font-size: 13px;
+}
+
+.panel-content {
+  font-size: 13px;
 }
 
 .panel {
@@ -58,16 +100,19 @@ body {
   font-size: 15px;
 }
 
-.panel dl {
+.panel dl,
+.sidebar dl {
   margin: 0;
 }
 
-.panel dt {
+.panel dt,
+.sidebar dt {
   font-weight: 600;
   margin-top: 6px;
 }
 
-.panel dd {
+.panel dd,
+.sidebar dd {
   margin: 0 0 2px;
   word-break: break-word;
 }
@@ -78,18 +123,24 @@ body {
   font-size: 12px;
 }
 
-#dem-layer {
-  right: auto;
-  left: 12px;
-  width: 250px;
+.basemap-switcher {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1000;
 }
 
-#dem-legend {
-  right: auto;
-  left: 12px;
-  top: auto;
-  bottom: 12px;
-  width: 270px;
+.basemap-btn {
+  padding: 6px 8px;
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  color: #333;
+}
+
+.basemap-btn.active {
+  font-weight: 600;
 }
 
 .control-row {
@@ -208,11 +259,23 @@ body {
   font-size: 13px;
 }
 
-#sim-summary {
-  right: auto;
-  left: 12px;
-  top: auto;
-  bottom: 12px;
-  width: 270px;
-  margin-bottom: 0;
+details summary {
+  cursor: pointer;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+@media (max-width: 900px) {
+  .app-main {
+    flex-direction: column;
+  }
+  .sidebar {
+    width: 100%;
+    max-height: 40vh;
+    border-right: none;
+    border-bottom: 1px solid #ddd;
+  }
+  .map-container {
+    height: 60vh;
+  }
 }

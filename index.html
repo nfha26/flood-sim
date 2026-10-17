@@ -15,73 +15,102 @@
     <p class="disclaimer">Simulasi edukasi sederhana, bukan prediksi.</p>
   </header>
   <main class="app-main">
-    <div id="map"></div>
-    <aside id="dem-meta" class="panel" hidden>
-      <h2>Metadata DEM</h2>
-      <dl id="dem-meta-list"></dl>
-      <p id="dem-meta-note" class="panel-note"></p>
-    </aside>
-    <aside id="dem-layer" class="panel" hidden>
-      <h2>Kontrol Skenario &amp; Layer</h2>
-      <section id="water-level-section" hidden>
-        <h3>Tinggi muka air</h3>
-        <div class="control-row">
-          <label for="wl-number"> nilai </label>
-          <input type="number" id="wl-number" step="0.1">
-          <output class="wl-unit">nilai DEM sumber</output>
-        </div>
-        <div class="control-row">
-          <input type="range" id="wl-slider" step="0.5">
-        </div>
-        <p id="wl-range-note" class="panel-note"></p>
-        <p id="wl-hint" class="input-hint" hidden></p>
-        <p id="wl-timing" class="wl-readout"></p>
+    <aside id="sidebar" class="sidebar">
+      <section id="wl-section">
+        <section id="water-level-section" hidden>
+          <h3>Tinggi muka air</h3>
+          <div class="control-row">
+            <label for="wl-number"> nilai </label>
+            <input type="number" id="wl-number" step="0.1">
+            <output class="wl-unit">nilai DEM sumber</output>
+          </div>
+          <div class="control-row">
+            <input type="range" id="wl-slider" step="0.5">
+          </div>
+          <p id="wl-range-note" class="panel-note"></p>
+          <p id="wl-hint" class="input-hint" hidden></p>
+          <p id="wl-timing" class="wl-readout"></p>
+        </section>
       </section>
-      <section id="elev-controls-section">
-        <h3>Layer Elevasi DEM</h3>
-        <label class="control-row">
-          <input type="checkbox" id="dem-toggle" checked>
-          Tampilkan elevasi DEM
-        </label>
-        <div class="control-row">
-          <label for="dem-opacity">Opasitas</label>
-          <input type="range" id="dem-opacity" min="0" max="100" step="1" value="100">
-          <output id="dem-opacity-value" for="dem-opacity">100%</output>
+      <section id="summary-section">
+        <div id="sim-summary" class="panel-content" hidden>
+          <h2>Ringkasan Simulasi</h2>
+          <dl id="sim-summary-list">
+            <dt>Tinggi muka air skenario</dt>
+            <dd id="sim-wl">—</dd>
+            <dt>Luas tergenang</dt>
+            <dd id="sim-area">—</dd>
+            <dt>Persentase ekstensi DEM</dt>
+            <dd id="sim-pct">—</dd>
+            <dt>Metode</dt>
+            <dd id="sim-method">—</dd>
+            <dt>Presisi</dt>
+            <dd id="sim-precision">—</dd>
+          </dl>
+          <p id="sim-note" class="panel-note"></p>
         </div>
       </section>
-    </aside>
-    <aside id="dem-legend" class="panel" hidden>
-      <section id="elev-legend-section" hidden>
-        <h2>Legenda — Elevasi DEM</h2>
-        <p class="legend-unit">nilai DEM sumber — meter (DEMNAS, datum vertikal EGM2008)</p>
-        <div id="legend-rows"></div>
-        <p id="legend-note" class="panel-note"></p>
+      <section id="layers-section">
+        <h2>Layer</h2>
+        <section id="elev-controls-section">
+          <h3>Layer Elevasi DEM</h3>
+          <label class="control-row">
+            <input type="checkbox" id="dem-toggle" checked>
+            Tampilkan elevasi DEM
+          </label>
+          <div class="control-row">
+            <label for="dem-opacity">Opasitas</label>
+            <input type="range" id="dem-opacity" min="0" max="100" step="1" value="100">
+            <output id="dem-opacity-value" for="dem-opacity">100%</output>
+          </div>
+        </section>
+        <section id="flood-controls-section" hidden>
+          <h3>Layer Genangan</h3>
+          <label class="control-row">
+            <input type="checkbox" id="flood-toggle" checked>
+            Tampilkan genangan
+          </label>
+          <div class="control-row">
+            <label for="flood-opacity">Opasitas</label>
+            <input type="range" id="flood-opacity" min="0" max="100" step="1" value="100">
+            <output id="flood-opacity-value" for="flood-opacity">100%</output>
+          </div>
+        </section>
       </section>
-      <section id="flood-legend-section" hidden>
-        <h3>Legenda — Genangan (nilai uji)</h3>
-        <div class="legend-row">
-          <span class="legend-swatch legend-swatch-flood"></span>
-          <span class="legend-label">Tergenang: elevasi ≤ <span id="flood-legend-wl">—</span> (nilai DEM sumber)</span>
+      <section id="legend-section">
+        <div id="dem-legend" class="panel-content" hidden>
+          <section id="elev-legend-section" hidden>
+            <h2>Legenda — Elevasi DEM</h2>
+            <p class="legend-unit">nilai DEM sumber — meter (DEMNAS, datum vertikal EGM2008)</p>
+            <div id="legend-rows"></div>
+            <p id="legend-note" class="panel-note"></p>
+          </section>
+          <section id="flood-legend-section" hidden>
+            <h3>Legenda — Genangan (nilai uji)</h3>
+            <div class="legend-row">
+              <span class="legend-swatch legend-swatch-flood"></span>
+              <span class="legend-label">Tergenang: elevasi ≤ <span id="flood-legend-wl">—</span> (nilai DEM sumber)</span>
+            </div>
+            <p id="flood-note" class="panel-note"></p>
+          </section>
         </div>
-        <p id="flood-note" class="panel-note"></p>
+      </section>
+      <section id="metadata-section">
+        <details id="dem-meta-details">
+          <summary>Metadata DEM</summary>
+          <div id="dem-meta" class="panel-content" hidden>
+            <dl id="dem-meta-list"></dl>
+            <p id="dem-meta-note" class="panel-note"></p>
+          </div>
+        </details>
       </section>
     </aside>
-    <aside id="sim-summary" class="panel" hidden>
-      <h2>Ringkasan Simulasi</h2>
-      <dl id="sim-summary-list">
-        <dt>Tinggi muka air skenario</dt>
-        <dd id="sim-wl">—</dd>
-        <dt>Luas tergenang</dt>
-        <dd id="sim-area">—</dd>
-        <dt>Persentase ekstensi DEM</dt>
-        <dd id="sim-pct">—</dd>
-        <dt>Metode</dt>
-        <dd id="sim-method">—</dd>
-        <dt>Presisi</dt>
-        <dd id="sim-precision">—</dd>
-      </dl>
-      <p id="sim-note" class="panel-note"></p>
-    </aside>
+    <div id="map-container" class="map-container">
+      <div id="map"></div>
+      <div id="basemap-switcher" class="basemap-switcher">
+        <button class="basemap-btn active" disabled>OpenStreetMap (aktif)</button>
+      </div>
+    </div>
   </main>
   <div id="map-status" hidden></div>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"

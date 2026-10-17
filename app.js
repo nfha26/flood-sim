@@ -49,7 +49,7 @@ function buildMetadataList(rows) {
 }
 
 const ELEV_BREAKS = [0, 10, 25, 50, 100, 150];
-const ELEV_COLORS = ['#4a90d9', '#8fce8f', '#41ab5d', '#d9cf5a', '#e09b3c', '#a8642a', '#6f4423'];
+const ELEV_COLORS = ['#264b5d', '#8fce8f', '#41ab5d', '#d9cf5a', '#e09b3c', '#a8642a', '#6f4423'];
 
 function classIndexFor(value) {
   for (let i = 0; i < ELEV_BREAKS.length; i++) {
@@ -194,9 +194,13 @@ function initDemControls(overlay) {
   toggle.checked = true;
   toggle.addEventListener('change', () => {
     if (toggle.checked) {
-      overlay.addTo(map);
+      if (!map.hasLayer(overlay)) {
+        overlay.addTo(map);
+      }
     } else {
-      map.removeLayer(overlay);
+      if (map.hasLayer(overlay)) {
+        map.removeLayer(overlay);
+      }
     }
     document.getElementById('elev-legend-section').hidden = !toggle.checked;
     refreshLegendPanel();
@@ -207,7 +211,6 @@ function initDemControls(overlay) {
     overlay.setOpacity(Number(slider.value) / 100);
     sliderValue.textContent = slider.value + '%';
   });
-  document.getElementById('dem-layer').hidden = false;
 }
 
 // --- Ringkasan simulasi / luas tergenang (Mission 08) ---
@@ -448,7 +451,13 @@ async function loadDem() {
     [northEast.lat, northEast.lng]
   ]);
   overlay.addTo(map);
-  map.fitBounds(overlay.getBounds());
+  const bounds = overlay.getBounds();
+  const isMobile = window.innerWidth <= 900;
+  if (isMobile) {
+    map.fitBounds(bounds, { padding: [10, 10] });
+  } else {
+    map.fitBounds(bounds, { paddingTopLeft: [340, 10], paddingBottomRight: [10, 10] });
+  }
   buildLegend(elevation);
   initDemControls(overlay);
 
@@ -481,6 +490,36 @@ async function loadDem() {
         updateSimSummary(DEFAULT_WATER_LEVEL, area0);
       }
       reportFloodTiming(t0, t1, t2, t3, flood, area0);
+
+      const floodControls = document.getElementById('flood-controls-section');
+      if (floodControls) {
+        floodControls.hidden = false;
+      }
+      const floodToggle = document.getElementById('flood-toggle');
+      const floodOpacity = document.getElementById('flood-opacity');
+      const floodOpacityValue = document.getElementById('flood-opacity-value');
+      if (floodToggle && floodOpacity && floodOpacityValue) {
+        floodToggle.checked = true;
+        floodToggle.addEventListener('change', () => {
+          if (!waterLevelState.floodOverlay) return;
+          if (floodToggle.checked) {
+            if (!map.hasLayer(waterLevelState.floodOverlay)) {
+              waterLevelState.floodOverlay.addTo(map);
+            }
+          } else {
+            if (map.hasLayer(waterLevelState.floodOverlay)) {
+              map.removeLayer(waterLevelState.floodOverlay);
+            }
+          }
+        });
+        floodOpacity.value = 100;
+        floodOpacityValue.textContent = '100%';
+        floodOpacity.addEventListener('input', () => {
+          if (!waterLevelState.floodOverlay) return;
+          waterLevelState.floodOverlay.setOpacity(Number(floodOpacity.value) / 100);
+          floodOpacityValue.textContent = floodOpacity.value + '%';
+        });
+      }
     }
   }
 
@@ -514,6 +553,10 @@ async function loadDem() {
     'tidak dideklarasikan di dalam file lokal; lihat data/DATA_SOURCES.md. ' +
     'Tinggi muka air skenario harus mengacu pada nilai elevasi DEM ini.';
   document.getElementById('dem-meta').hidden = false;
+  const metaDetails = document.getElementById('dem-meta-details');
+  if (metaDetails) {
+    metaDetails.open = false;
+  }
 }
 
 loadDem();
