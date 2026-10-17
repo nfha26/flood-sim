@@ -156,6 +156,45 @@ body {
   background: rgba(21, 101, 192, 0.55);
 }
 
+#water-level-section h3,
+#elev-controls-section h3 {
+  margin: 0 0 4px;
+  font-size: 13px;
+}
+
+#elev-controls-section {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid #ccc;
+}
+
+#water-level-section + #elev-controls-section {
+  margin-top: 10px;
+}
+
+#water-level-section .control-row input[type="number"] {
+  width: 70px;
+  padding: 2px 4px;
+}
+
+.wl-unit {
+  color: #555;
+  font-size: 12px;
+}
+
+.input-hint {
+  margin: 6px 0 0;
+  color: #b00020;
+  font-size: 12px;
+}
+
+.wl-readout {
+  margin: 6px 0 0;
+  color: #555;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
 #map-status {
   position: fixed;
   top: 70px;

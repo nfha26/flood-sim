@@ -40,5 +40,30 @@
     return { mask: mask, floodedCount: floodedCount, validCount: validCount, nodataCount: nodataCount };
   }
 
-  return { computeFloodMask: computeFloodMask };
+  function parseWaterLevel(raw, min, max) {
+    if (typeof min !== 'number' || !Number.isFinite(min) ||
+        typeof max !== 'number' || !Number.isFinite(max) || min > max) {
+      return { ok: false, value: null, reason: 'nan' };
+    }
+    if (raw === null || raw === undefined) {
+      return { ok: false, value: null, reason: 'empty' };
+    }
+    const s = String(raw).trim();
+    if (s === '') {
+      return { ok: false, value: null, reason: 'empty' };
+    }
+    const n = Number(s);
+    if (!Number.isFinite(n)) {
+      return { ok: false, value: null, reason: 'nan' };
+    }
+    if (n < min) {
+      return { ok: false, value: min, reason: 'below' };
+    }
+    if (n > max) {
+      return { ok: false, value: max, reason: 'above' };
+    }
+    return { ok: true, value: n, reason: null };
+  }
+
+  return { computeFloodMask: computeFloodMask, parseWaterLevel: parseWaterLevel };
 });

@@ -111,6 +111,96 @@ test('nodataValue null (tanpa tag NoData) tidak mengecualikan sel angka biasa', 
   assert.strictEqual(r.nodataCount, 0);
 });
 
+// --- Mission 07: multi-level pada grid 4x4 dengan hitungan tangan ---
+const G_ND = -3.4028234663852886e38;
+const grid4 = [
+  -4, -1, 0, 2,
+  3, G_ND, 5, 10,
+  12, 15, -2, 20,
+  25, 30, 0, 40
+];
+
+const MULTI_LEVEL = [
+  {
+    wl: -1,
+    mask: [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+    flooded: 3
+  },
+  {
+    wl: 0,
+    mask: [1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0],
+    flooded: 5
+  },
+  {
+    wl: 2.5,
+    mask: [1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0],
+    flooded: 6
+  },
+  {
+    wl: 5,
+    mask: [1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0],
+    flooded: 8
+  },
+  {
+    wl: 10,
+    mask: [1, 1, 1, 1, 1, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0],
+    flooded: 9
+  }
+];
+
+for (const c of MULTI_LEVEL) {
+  test('grid 4x4 WL=' + c.wl + ': mask == hitungan tangan', function () {
+    const r = Bathtub.computeFloodMask(grid4, G_ND, c.wl);
+    assert.deepStrictEqual(maskOf(r), c.mask);
+    assert.strictEqual(r.floodedCount, c.flooded);
+    assert.strictEqual(r.validCount, 15);
+    assert.strictEqual(r.nodataCount, 1);
+  });
+}
+
+test('monoton: floodedCount tidak menurun saat WL naik (-1..40)', function () {
+  const levels = [-1, 0, 2.5, 5, 10, 25, 40];
+  let prev = -1;
+  for (const wl of levels) {
+    const r = Bathtub.computeFloodMask(grid4, G_ND, wl);
+    assert.ok(r.floodedCount >= prev, 'WL ' + wl + ': ' + r.floodedCount + ' < ' + prev);
+    prev = r.floodedCount;
+  }
+  assert.strictEqual(Bathtub.computeFloodMask(grid4, G_ND, 40).floodedCount, 15);
+});
+
+// --- Mission 07: parseWaterLevel ---
+const P_MIN = -5;
+const P_MAX = 238;
+
+test('parseWaterLevel: angka valid', function () {
+  assert.deepStrictEqual(Bathtub.parseWaterLevel('5', P_MIN, P_MAX), { ok: true, value: 5, reason: null });
+  assert.deepStrictEqual(Bathtub.parseWaterLevel('3.7', P_MIN, P_MAX), { ok: true, value: 3.7, reason: null });
+  assert.deepStrictEqual(Bathtub.parseWaterLevel(5, P_MIN, P_MAX), { ok: true, value: 5, reason: null });
+});
+
+test('parseWaterLevel: batas rentang inklusif', function () {
+  assert.deepStrictEqual(Bathtub.parseWaterLevel('-5', P_MIN, P_MAX), { ok: true, value: -5, reason: null });
+  assert.deepStrictEqual(Bathtub.parseWaterLevel('238', P_MIN, P_MAX), { ok: true, value: 238, reason: null });
+});
+
+test('parseWaterLevel: kosong', function () {
+  assert.deepStrictEqual(Bathtub.parseWaterLevel('', P_MIN, P_MAX), { ok: false, value: null, reason: 'empty' });
+  assert.deepStrictEqual(Bathtub.parseWaterLevel('   ', P_MIN, P_MAX), { ok: false, value: null, reason: 'empty' });
+  assert.deepStrictEqual(Bathtub.parseWaterLevel(null, P_MIN, P_MAX), { ok: false, value: null, reason: 'empty' });
+  assert.deepStrictEqual(Bathtub.parseWaterLevel(undefined, P_MIN, P_MAX), { ok: false, value: null, reason: 'empty' });
+});
+
+test('parseWaterLevel: bukan angka (termasuk koma desimal)', function () {
+  assert.deepStrictEqual(Bathtub.parseWaterLevel('abc', P_MIN, P_MAX), { ok: false, value: null, reason: 'nan' });
+  assert.deepStrictEqual(Bathtub.parseWaterLevel('5,5', P_MIN, P_MAX), { ok: false, value: null, reason: 'nan' });
+});
+
+test('parseWaterLevel: di luar rentang -> di-clamp dengan reason', function () {
+  assert.deepStrictEqual(Bathtub.parseWaterLevel('-100', P_MIN, P_MAX), { ok: false, value: -5, reason: 'below' });
+  assert.deepStrictEqual(Bathtub.parseWaterLevel('999', P_MIN, P_MAX), { ok: false, value: 238, reason: 'above' });
+});
+
 console.log('');
 console.log(passed + ' PASS, ' + failed + ' FAIL');
 process.exit(failed > 0 ? 1 : 0);

@@ -22,16 +22,33 @@
       <p id="dem-meta-note" class="panel-note"></p>
     </aside>
     <aside id="dem-layer" class="panel" hidden>
-      <h2>Layer Elevasi DEM</h2>
-      <label class="control-row">
-        <input type="checkbox" id="dem-toggle" checked>
-        Tampilkan elevasi DEM
-      </label>
-      <div class="control-row">
-        <label for="dem-opacity">Opasitas</label>
-        <input type="range" id="dem-opacity" min="0" max="100" step="1" value="100">
-        <output id="dem-opacity-value" for="dem-opacity">100%</output>
-      </div>
+      <h2>Kontrol Skenario &amp; Layer</h2>
+      <section id="water-level-section" hidden>
+        <h3>Tinggi muka air</h3>
+        <div class="control-row">
+          <label for="wl-number"> nilai </label>
+          <input type="number" id="wl-number" step="0.1">
+          <output class="wl-unit">nilai DEM sumber</output>
+        </div>
+        <div class="control-row">
+          <input type="range" id="wl-slider" step="0.5">
+        </div>
+        <p id="wl-range-note" class="panel-note"></p>
+        <p id="wl-hint" class="input-hint" hidden></p>
+        <p id="wl-timing" class="wl-readout"></p>
+      </section>
+      <section id="elev-controls-section">
+        <h3>Layer Elevasi DEM</h3>
+        <label class="control-row">
+          <input type="checkbox" id="dem-toggle" checked>
+          Tampilkan elevasi DEM
+        </label>
+        <div class="control-row">
+          <label for="dem-opacity">Opasitas</label>
+          <input type="range" id="dem-opacity" min="0" max="100" step="1" value="100">
+          <output id="dem-opacity-value" for="dem-opacity">100%</output>
+        </div>
+      </section>
     </aside>
     <aside id="dem-legend" class="panel" hidden>
       <section id="elev-legend-section" hidden>

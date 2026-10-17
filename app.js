@@ -21,9 +21,9 @@ osmLayer.addTo(map);
 const DEM_URL = 'data/DEMNAS_ok_besuki.geotiff';
 const KNOWN_NODATA_FALLBACK = -3.4028234663852886e38;
 
-// SEMENTARA — nilai tinggi muka air uji yang konstan (nilai DEM sumber, meter).
-// Mission 07 (Water-Level Control) mengganti nilai ini dengan kontrol interaktif.
-const TEST_WATER_LEVEL = 5;
+// Nilai awal tinggi muka air skenario (nilai DEM sumber).
+// Rentang kontrol diturunkan dari min/maks DEM terverifikasi saat runtime — lihat initWaterLevelControls.
+const DEFAULT_WATER_LEVEL = 5;
 const FLOOD_COLOR = '#1565c0';
 const FLOOD_ALPHA = 0.55;
 
@@ -176,14 +176,13 @@ function buildLegend(elevation) {
   refreshLegendPanel();
 }
 
-function buildFloodLegend(waterLevel) {
+function updateFloodLegend(waterLevel) {
   document.getElementById('flood-legend-wl').textContent = String(waterLevel);
   document.getElementById('flood-note').textContent =
-    'Tinggi muka air uji (SEMENTARA): ' + waterLevel +
+    'Tinggi muka air skenario: ' + waterLevel +
     ' — relatif terhadap nilai DEM sumber (meter; EGM2008 per spesifikasi produk BIG, ' +
     'file lokal tidak mendeklarasikan datum sendiri). Bukan prakiraan; tanpa aliran, durasi, ' +
-    'infiltrasi, dan drainase. Sel NoData dikecualikan. ' +
-    'Mission 07 mengganti nilai ini dengan kontrol interaktif.';
+    'infiltrasi, dan drainase. Sel NoData dikecualikan.';
   document.getElementById('flood-legend-section').hidden = false;
   refreshLegendPanel();
 }
@@ -209,6 +208,125 @@ function initDemControls(overlay) {
     sliderValue.textContent = slider.value + '%';
   });
   document.getElementById('dem-layer').hidden = false;
+}
+
+// --- Kontrol tinggi muka air (Mission 07) ---
+const waterLevelState = {
+  dem: null,
+  floodOverlay: null,
+  min: null,
+  max: null,
+  renderedWaterLevel: null,
+  pendingWaterLevel: null,
+  rafId: null,
+  lastValid: null
+};
+
+function reportFloodTiming(t0, t1, t2, flood) {
+  document.getElementById('wl-timing').textContent =
+    'Perhitungan terakhir: mask ' + formatNumber(t1 - t0, 0) + ' ms · render ' +
+    formatNumber(t2 - t1, 0) + ' ms · total ' + formatNumber(t2 - t0, 0) + ' ms';
+  console.debug(
+    '[genangan] wl=' + waterLevelState.renderedWaterLevel +
+    ' flooded=' + flood.floodedCount +
+    ' maskMs=' + formatNumber(t1 - t0, 1) +
+    ' renderMs=' + formatNumber(t2 - t1, 1) +
+    ' totalMs=' + formatNumber(t2 - t0, 1)
+  );
+}
+
+function applyWaterLevel(waterLevel) {
+  if (waterLevel === waterLevelState.renderedWaterLevel) return;
+  const t0 = performance.now();
+  const flood = Bathtub.computeFloodMask(
+    waterLevelState.dem.data,
+    waterLevelState.dem.nodata,
+    waterLevel
+  );
+  const t1 = performance.now();
+  if (flood === null) {
+    showStatus('Perhitungan genangan gagal untuk tinggi muka air ' + waterLevel + '.');
+    return;
+  }
+  const url = renderFloodMask(flood.mask, waterLevelState.dem.width, waterLevelState.dem.height);
+  const t2 = performance.now();
+  waterLevelState.floodOverlay.setUrl(url);
+  waterLevelState.renderedWaterLevel = waterLevel;
+  updateFloodLegend(waterLevel);
+  reportFloodTiming(t0, t1, t2, flood);
+}
+
+function scheduleWaterLevelUpdate(waterLevel) {
+  waterLevelState.pendingWaterLevel = waterLevel;
+  if (waterLevelState.rafId !== null) return;
+  waterLevelState.rafId = requestAnimationFrame(() => {
+    waterLevelState.rafId = null;
+    applyWaterLevel(waterLevelState.pendingWaterLevel);
+  });
+}
+
+function setWaterHint(message) {
+  const hint = document.getElementById('wl-hint');
+  hint.textContent = message === null ? '' : message;
+  hint.hidden = message === null;
+}
+
+function commitNumberInput(numberInput, slider) {
+  const parsed = Bathtub.parseWaterLevel(numberInput.value, waterLevelState.min, waterLevelState.max);
+  if (parsed.ok) {
+    setWaterHint(null);
+    slider.value = parsed.value;
+    waterLevelState.lastValid = parsed.value;
+    scheduleWaterLevelUpdate(parsed.value);
+    return;
+  }
+  if (parsed.reason === 'below' || parsed.reason === 'above') {
+    setWaterHint('Nilai di luar rentang, dikunci ke ' + parsed.value + '.');
+    numberInput.value = parsed.value;
+    slider.value = parsed.value;
+    waterLevelState.lastValid = parsed.value;
+    scheduleWaterLevelUpdate(parsed.value);
+    return;
+  }
+  setWaterHint(
+    'Masukkan angka dalam rentang ' + waterLevelState.min + '…' + waterLevelState.max + '.'
+  );
+  numberInput.value = waterLevelState.lastValid;
+}
+
+function initWaterLevelControls(dem, elevation) {
+  waterLevelState.dem = dem;
+  waterLevelState.min = Math.floor(elevation.min);
+  waterLevelState.max = Math.ceil(elevation.max);
+
+  const slider = document.getElementById('wl-slider');
+  const numberInput = document.getElementById('wl-number');
+  slider.min = waterLevelState.min;
+  slider.max = waterLevelState.max;
+  numberInput.min = waterLevelState.min;
+  numberInput.max = waterLevelState.max;
+  document.getElementById('wl-range-note').textContent =
+    'Satuan: nilai DEM sumber. Rentang ' + waterLevelState.min + '…' + waterLevelState.max +
+    ' (dibulatkan ke luar dari min ' + formatNumber(elevation.min, 3) +
+    ' · maks ' + formatNumber(elevation.max, 3) + '). Bukan prakiraan.';
+
+  slider.value = DEFAULT_WATER_LEVEL;
+  numberInput.value = DEFAULT_WATER_LEVEL;
+  waterLevelState.lastValid = DEFAULT_WATER_LEVEL;
+
+  slider.addEventListener('input', () => {
+    const v = Number(slider.value);
+    numberInput.value = v;
+    setWaterHint(null);
+    waterLevelState.lastValid = v;
+    scheduleWaterLevelUpdate(v);
+  });
+
+  numberInput.addEventListener('change', () => {
+    commitNumberInput(numberInput, slider);
+  });
+
+  document.getElementById('water-level-section').hidden = false;
 }
 
 async function loadDem() {
@@ -270,13 +388,20 @@ async function loadDem() {
   if (typeof Bathtub === 'undefined') {
     showStatus('Pustaka simulasi (simulation.js) gagal dimuat — overlay genangan tidak dibuat.');
   } else {
-    const flood = Bathtub.computeFloodMask(data, nodata, TEST_WATER_LEVEL);
+    initWaterLevelControls({ data: data, width: width, height: height, nodata: nodata }, elevation);
+    const t0 = performance.now();
+    const flood = Bathtub.computeFloodMask(data, nodata, DEFAULT_WATER_LEVEL);
+    const t1 = performance.now();
     if (flood === null) {
-      showStatus('Nilai tinggi muka air uji tidak valid — overlay genangan tidak dibuat.');
+      showStatus('Nilai tinggi muka air awal tidak valid — overlay genangan tidak dibuat.');
     } else {
-      const floodOverlay = L.imageOverlay(renderFloodMask(flood.mask, width, height), overlay.getBounds());
-      floodOverlay.addTo(map);
-      buildFloodLegend(TEST_WATER_LEVEL);
+      const url0 = renderFloodMask(flood.mask, width, height);
+      const t2 = performance.now();
+      waterLevelState.floodOverlay = L.imageOverlay(url0, overlay.getBounds());
+      waterLevelState.floodOverlay.addTo(map);
+      waterLevelState.renderedWaterLevel = DEFAULT_WATER_LEVEL;
+      updateFloodLegend(DEFAULT_WATER_LEVEL);
+      reportFloodTiming(t0, t1, t2, flood);
     }
   }
 
