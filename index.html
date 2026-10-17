@@ -10,9 +10,24 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div id="map"></div>
+  <header class="app-header">
+    <h1>Simulasi Banjir — Edukasi</h1>
+    <p class="disclaimer">Simulasi edukasi sederhana, bukan prediksi.</p>
+  </header>
+  <main class="app-main">
+    <div id="map"></div>
+    <aside id="dem-meta" class="panel" hidden>
+      <h2>Metadata DEM</h2>
+      <dl id="dem-meta-list"></dl>
+      <p id="dem-meta-note" class="panel-note"></p>
+    </aside>
+  </main>
+  <div id="map-status" hidden></div>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
           integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+          crossorigin=""></script>
+  <script src="https://unpkg.com/geotiff@3.0.5/dist-browser/geotiff.js"
+          integrity="sha384-QchpYxK+DqZYCChtK4SebrECTZEIQ0ahLhme9vwraN6KNxOGwtS66BG72wo1HQDN"
           crossorigin=""></script>
   <script src="app.js"></script>
 </body>
