@@ -210,6 +210,58 @@ function initDemControls(overlay) {
   document.getElementById('dem-layer').hidden = false;
 }
 
+// --- Ringkasan simulasi / luas tergenang (Mission 08) ---
+const simSummaryState = {
+  validCells: null,
+  belowZeroCells: null
+};
+
+function formatId(value, minFraction, maxFraction) {
+  return new Intl.NumberFormat('id-ID', {
+    minimumFractionDigits: minFraction,
+    maximumFractionDigits: maxFraction
+  }).format(value);
+}
+
+function initSimSummary(elevation, grid) {
+  simSummaryState.validCells = elevation.validCount;
+  simSummaryState.belowZeroCells = elevation.classCounts[0];
+
+  const centerY = grid.north - (grid.height / 2) * grid.cellSize;
+  const cellAreaM2 = Bathtub.mercatorGroundCellArea(centerY, grid.cellSize);
+  const groundRes = cellAreaM2 === null ? null : Math.sqrt(cellAreaM2);
+
+  document.getElementById('sim-method').textContent =
+    'Model bathtub: sel tergenang bila elevasi ≤ tinggi muka air. Luas dihitung per baris dengan ' +
+    'koreksi distorsi Web Mercator (× cos² lintang).';
+
+  document.getElementById('sim-precision').textContent =
+    'Dibatasi resolusi DEM: sel ' + formatNumber(grid.cellSize, 3) + ' m (piksel mercator)' +
+    (groundRes === null ? '' : ' ≈ ' + formatNumber(groundRes, 3) + ' m di permukaan tanah') +
+    (cellAreaM2 === null ? '' : '; 1 sel ≈ ' + formatId(cellAreaM2, 1, 1) + ' m²') +
+    '. Luas dibulatkan; satuan mengikuti luas horisontal permukaan tanah.';
+
+  const belowZeroPct = formatId((elevation.classCounts[0] / elevation.validCount) * 100, 2, 2);
+  document.getElementById('sim-note').textContent =
+    'Penyebut persentase: luas seluruh sel valid DEM (' + formatId(elevation.validCount, 0, 0) + ' sel). ' +
+    belowZeroPct + '% sel DEM bernilai ≤ 0 (di bawah acuan EGM2008) dan ikut aturan simulasi. ' +
+    'Tinggi muka air relatif terhadap nilai DEM sumber — nilai skenario, bukan observasi, bukan prakiraan, ' +
+    'bukan peta bahaya. Tanpa aliran, durasi, infiltrasi, drainase, hambatan. Sel NoData dikecualikan. ' +
+    'Rincian metode: data/DATA_SOURCES.md.';
+
+  document.getElementById('sim-summary').hidden = false;
+}
+
+function updateSimSummary(waterLevel, area) {
+  document.getElementById('sim-wl').textContent = waterLevel + ' m (nilai DEM sumber)';
+  document.getElementById('sim-area').textContent =
+    formatId(area.floodedAreaM2 / 1e4, 2, 2) + ' ha (≈ ' +
+    formatId(area.floodedAreaM2 / 1e6, 3, 3) + ' km²)';
+  document.getElementById('sim-pct').textContent =
+    formatId(area.pctFlooded, 2, 2) + ' % — ' + formatId(area.floodedCells, 0, 0) +
+    ' dari ' + formatId(area.validCells, 0, 0) + ' sel valid';
+}
+
 // --- Kontrol tinggi muka air (Mission 07) ---
 const waterLevelState = {
   dem: null,
@@ -222,16 +274,19 @@ const waterLevelState = {
   lastValid: null
 };
 
-function reportFloodTiming(t0, t1, t2, flood) {
+function reportFloodTiming(t0, t1, t2, t3, flood, area) {
   document.getElementById('wl-timing').textContent =
     'Perhitungan terakhir: mask ' + formatNumber(t1 - t0, 0) + ' ms · render ' +
-    formatNumber(t2 - t1, 0) + ' ms · total ' + formatNumber(t2 - t0, 0) + ' ms';
+    formatNumber(t3 - t2, 0) + ' ms · total ' + formatNumber(t3 - t0, 0) + ' ms';
   console.debug(
     '[genangan] wl=' + waterLevelState.renderedWaterLevel +
     ' flooded=' + flood.floodedCount +
     ' maskMs=' + formatNumber(t1 - t0, 1) +
-    ' renderMs=' + formatNumber(t2 - t1, 1) +
-    ' totalMs=' + formatNumber(t2 - t0, 1)
+    ' areaMs=' + formatNumber(t2 - t1, 1) +
+    ' renderMs=' + formatNumber(t3 - t2, 1) +
+    ' totalMs=' + formatNumber(t3 - t0, 1) +
+    (area === null ? ' luas=gagal' : ' luasM2=' + formatNumber(area.floodedAreaM2, 1) +
+      ' pct=' + formatNumber(area.pctFlooded, 4))
   );
 }
 
@@ -248,12 +303,24 @@ function applyWaterLevel(waterLevel) {
     showStatus('Perhitungan genangan gagal untuk tinggi muka air ' + waterLevel + '.');
     return;
   }
-  const url = renderFloodMask(flood.mask, waterLevelState.dem.width, waterLevelState.dem.height);
+  const area = Bathtub.computeFloodedArea(
+    waterLevelState.dem.data,
+    flood.mask,
+    waterLevelState.dem.nodata,
+    waterLevelState.dem.grid
+  );
   const t2 = performance.now();
+  const url = renderFloodMask(flood.mask, waterLevelState.dem.width, waterLevelState.dem.height);
+  const t3 = performance.now();
   waterLevelState.floodOverlay.setUrl(url);
   waterLevelState.renderedWaterLevel = waterLevel;
   updateFloodLegend(waterLevel);
-  reportFloodTiming(t0, t1, t2, flood);
+  if (area === null) {
+    console.warn('[luas] perhitungan luas gagal untuk wl=' + waterLevel + ' — ringkasan dibiarkan.');
+  } else {
+    updateSimSummary(waterLevel, area);
+  }
+  reportFloodTiming(t0, t1, t2, t3, flood, area);
 }
 
 function scheduleWaterLevelUpdate(waterLevel) {
@@ -388,20 +455,32 @@ async function loadDem() {
   if (typeof Bathtub === 'undefined') {
     showStatus('Pustaka simulasi (simulation.js) gagal dimuat — overlay genangan tidak dibuat.');
   } else {
-    initWaterLevelControls({ data: data, width: width, height: height, nodata: nodata }, elevation);
+    const grid = { width: width, height: height, cellSize: resolution[0], north: north };
+    initWaterLevelControls(
+      { data: data, width: width, height: height, nodata: nodata, grid: grid },
+      elevation
+    );
+    initSimSummary(elevation, grid);
     const t0 = performance.now();
     const flood = Bathtub.computeFloodMask(data, nodata, DEFAULT_WATER_LEVEL);
     const t1 = performance.now();
     if (flood === null) {
       showStatus('Nilai tinggi muka air awal tidak valid — overlay genangan tidak dibuat.');
     } else {
-      const url0 = renderFloodMask(flood.mask, width, height);
+      const area0 = Bathtub.computeFloodedArea(data, flood.mask, nodata, grid);
       const t2 = performance.now();
+      const url0 = renderFloodMask(flood.mask, width, height);
+      const t3 = performance.now();
       waterLevelState.floodOverlay = L.imageOverlay(url0, overlay.getBounds());
       waterLevelState.floodOverlay.addTo(map);
       waterLevelState.renderedWaterLevel = DEFAULT_WATER_LEVEL;
       updateFloodLegend(DEFAULT_WATER_LEVEL);
-      reportFloodTiming(t0, t1, t2, flood);
+      if (area0 === null) {
+        console.warn('[luas] perhitungan luas awal gagal — ringkasan dibiarkan.');
+      } else {
+        updateSimSummary(DEFAULT_WATER_LEVEL, area0);
+      }
+      reportFloodTiming(t0, t1, t2, t3, flood, area0);
     }
   }
 

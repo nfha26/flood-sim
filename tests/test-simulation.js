@@ -1,5 +1,6 @@
 /**
- * Uji unit model bathtub (Mission 06) — tanpa framework.
+ * Uji unit model bathtub (Mission 06) + kontrol tinggi muka air (Mission 07) +
+ * luas tergenang (Mission 08) — tanpa framework.
  * Jalankan:  node tests/test-simulation.js
  * Keluar dengan kode != 0 bila ada kegagalan.
  */
@@ -199,6 +200,121 @@ test('parseWaterLevel: bukan angka (termasuk koma desimal)', function () {
 test('parseWaterLevel: di luar rentang -> di-clamp dengan reason', function () {
   assert.deepStrictEqual(Bathtub.parseWaterLevel('-100', P_MIN, P_MAX), { ok: false, value: -5, reason: 'below' });
   assert.deepStrictEqual(Bathtub.parseWaterLevel('999', P_MIN, P_MAX), { ok: false, value: 238, reason: 'above' });
+});
+
+// --- Mission 08: luas tergenang dengan koreksi distorsi Web Mercator per baris ---
+// Literal acuan dihitung independen dengan Python 3.12 + pyproj (WGS84) — lihat README/data/DATA_SOURCES.md.
+const Y60 = 8399737.889818355;        // y Web Mercator pada lintang 60°
+const CS = 1000;                       // ukuran sel uji (meter, mercator)
+const NORTH_G1 = 8400237.889818355;    // 2 baris: baris 0 di lintang 60°, baris 1 di selatannya
+
+function relDiff(a, b) {
+  return Math.abs(a - b) / Math.abs(b);
+}
+
+function assertClose(actual, expected, tol, label) {
+  assert.ok(relDiff(actual, expected) <= tol, label + ': ' + actual + ' vs ' + expected);
+}
+
+test('luas sel Mercator: di ekuator cos^2 = 1 -> luas = cellSize^2', function () {
+  assert.strictEqual(Bathtub.mercatorGroundCellArea(0, 1000), 1000000);
+});
+
+test('luas sel Mercator: lintang 60 derajat -> 0,25 x cellSize^2 (literal Python)', function () {
+  assertClose(Bathtub.mercatorGroundCellArea(Y60, 1000), 250000.00000000032, 1e-12, 'area@60');
+});
+
+test('luas sel Mercator: input tidak valid -> null', function () {
+  assert.strictEqual(Bathtub.mercatorGroundCellArea(NaN, 1000), null);
+  assert.strictEqual(Bathtub.mercatorGroundCellArea(0, 0), null);
+  assert.strictEqual(Bathtub.mercatorGroundCellArea(0, -5), null);
+  assert.strictEqual(Bathtub.mercatorGroundCellArea('0', 1000), null);
+});
+
+test('computeFloodedArea: grid 2x3 manual (literal Python) + pct', function () {
+  const elevation = [0, 0, 0, 0, 0, 0];
+  const mask = [1, 1, 0, 1, 0, 0];
+  const grid = { width: 3, height: 2, cellSize: CS, north: NORTH_G1 };
+  const r = Bathtub.computeFloodedArea(elevation, mask, NODATA, grid);
+  assert.ok(r, 'hasil tidak null');
+  assert.strictEqual(r.floodedCells, 3);
+  assert.strictEqual(r.validCells, 6);
+  assertClose(r.floodedAreaM2, 750067.897835868, 1e-9, 'floodedAreaM2');
+  assertClose(r.validAreaM2, 1500203.693507603, 1e-9, 'validAreaM2');
+  assertClose(r.pctFlooded, 49.99773704610378, 1e-9, 'pctFlooded');
+});
+
+test('computeFloodedArea: koreksi per baris (baris selatan lebih luas di lintang ini)', function () {
+  const elevation = [0, 0, 0, 0, 0, 0];
+  const grid = { width: 3, height: 2, cellSize: CS, north: NORTH_G1 };
+  const top = Bathtub.computeFloodedArea(elevation, [1, 1, 0, 0, 0, 0], NODATA, grid);
+  const bottom = Bathtub.computeFloodedArea(elevation, [0, 0, 0, 1, 1, 0], NODATA, grid);
+  assert.ok(bottom.floodedAreaM2 > top.floodedAreaM2, 'baris selatan harus lebih luas');
+  assertClose(bottom.floodedAreaM2 - top.floodedAreaM2, 135.79567173396, 1e-6, 'selisih baris');
+});
+
+test('computeFloodedArea: penyebut = luas sel valid (NoData keluar dari pembilang & penyebut)', function () {
+  const grid = { width: 2, height: 1, cellSize: CS, north: 500 };
+  const withNd = Bathtub.computeFloodedArea([0, NODATA], [1, 1], NODATA, grid);
+  assert.strictEqual(withNd.floodedCells, 1);
+  assert.strictEqual(withNd.validCells, 1);
+  assertClose(withNd.pctFlooded, 100, 1e-12, 'pct dengan NoData');
+  const both = Bathtub.computeFloodedArea([0, 5], [1, 0], NODATA, grid);
+  assert.strictEqual(both.validCells, 2);
+  assertClose(both.pctFlooded, 50, 1e-12, 'pct 2 sel valid');
+});
+
+test('computeFloodedArea: input tidak valid -> null', function () {
+  const g = { width: 2, height: 2, cellSize: 10, north: 0 };
+  assert.strictEqual(Bathtub.computeFloodedArea([1, 2, 3], [1, 1, 1], NODATA, g), null);
+  assert.strictEqual(Bathtub.computeFloodedArea([1, 2, 3, 4], [1, 1, 1], NODATA, g), null);
+  assert.strictEqual(Bathtub.computeFloodedArea([1, 2, 3, 4], [1, 1, 1, 1], NODATA, null), null);
+  assert.strictEqual(
+    Bathtub.computeFloodedArea([1, 2, 3, 4], [1, 1, 1, 1], NODATA, { width: 2, height: 2, cellSize: 0, north: 0 }),
+    null
+  );
+  assert.strictEqual(
+    Bathtub.computeFloodedArea([1, 2, 3, 4], [1, 1, 1, 1], NODATA, { width: 2.5, height: 2, cellSize: 10, north: 0 }),
+    null
+  );
+});
+
+test('luas tergenang monoton tidak menurun saat WL naik (grid4, 4x4)', function () {
+  const grid = { width: 4, height: 4, cellSize: CS, north: 2000 };
+  let prev = -1;
+  for (const wl of [-1, 0, 2.5, 5, 10, 25, 40]) {
+    const f = Bathtub.computeFloodMask(grid4, G_ND, wl);
+    const a = Bathtub.computeFloodedArea(grid4, f.mask, G_ND, grid);
+    assert.ok(a.floodedAreaM2 >= prev, 'WL ' + wl + ': ' + a.floodedAreaM2 + ' < ' + prev);
+    prev = a.floodedAreaM2;
+  }
+});
+
+test('DEM-shaped: luas sel valid 1247x684 == literal Python (852.948 sel)', function () {
+  const width = 1247;
+  const height = 684;
+  const grid = { width: width, height: height, cellSize: 8.344380363942228, north: -860731.179 };
+  const elevation = new Float32Array(width * height);
+  const mask = new Uint8Array(width * height).fill(1);
+  const r = Bathtub.computeFloodedArea(elevation, mask, NODATA, grid);
+  assert.ok(r, 'hasil tidak null');
+  assert.strictEqual(r.validCells, 852948);
+  assertClose(r.validAreaM2, 58314049.78912939, 1e-9, 'validAreaM2');
+  assert.strictEqual(r.pctFlooded, 100);
+});
+
+test('setara: per-baris vs satu-lintang-tengah (selisih relatif < 1e-6)', function () {
+  const width = 1247;
+  const height = 684;
+  const cs = 8.344380363942228;
+  const north = -860731.179;
+  const elevation = new Float32Array(width * height);
+  const mask = new Uint8Array(width * height).fill(1);
+  const perRow = Bathtub.computeFloodedArea(
+    elevation, mask, NODATA, { width: width, height: height, cellSize: cs, north: north }
+  ).validAreaM2;
+  const single = Bathtub.mercatorGroundCellArea(north - 0.5 * height * cs, cs) * width * height;
+  assert.ok(relDiff(single, perRow) < 1e-6, 'selisih relatif ' + relDiff(single, perRow));
 });
 
 console.log('');

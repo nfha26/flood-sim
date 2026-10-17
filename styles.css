@@ -207,3 +207,12 @@ body {
   border-radius: 4px;
   font-size: 13px;
 }
+
+#sim-summary {
+  right: auto;
+  left: 12px;
+  top: auto;
+  bottom: 12px;
+  width: 270px;
+  margin-bottom: 0;
+}

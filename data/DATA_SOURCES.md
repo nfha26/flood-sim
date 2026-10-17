@@ -147,6 +147,14 @@ per sel di UI). NoData tetap dikecualikan dan tidak pernah dianggap elevasi 0.
 
 ---
 
+### 1f. Keputusan perhitungan luas (Mission 08)
+
+Luas tergenang dihitung dari mask elevasi <= tinggi muka air dengan koreksi distorsi Web Mercator per baris. EPSG:3857 adalah Mercator bola (R = 6378137 m): luas tanah per sel = luas sel peta × cos² φ.
+
+Penyebut persentase = luas seluruh sel valid DEM; 32,07% sel DEM bernilai <= 0 ikut aturan simulasi. Selisih bola vs ellipsoid (cos² per-baris vs luas geodesik pyproj.Geod) = +0,650%. Resolusi tanah ≈ 8,268 m (mencatat perbedaan vs 8,264 m pada tabel 1d). Variasi antar baris 0,024% — koreksi per-baris dipilih. Toleransi verifikasi < 1e-6 relatif.
+
+---
+
 ## 2. Basemap (bukan data di repo)
 
 | Data | Sumber | Status |

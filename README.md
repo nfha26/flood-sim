@@ -88,7 +88,7 @@ Genangan (Mission 06):
 - **Legenda genangan tersendiri**: swatch + label "Tergenang: elevasi ≤ X (nilai DEM sumber)" + catatan bahwa tinggi muka air adalah skenario pengguna, **relatif terhadap nilai DEM sumber** (meter; EGM2008 per spesifikasi produk BIG, file lokal tidak mendeklarasikan datum sendiri), bukan prakiraan; **sel NoData dikecualikan**
 - **Sel bernilai ≤ 0 ikut aturan biasa** (keputusan terdokumentasi) — lihat `data/DATA_SOURCES.md` sub-bab 1e
 - **Fungsi simulasi murni** `simulation.js` (`Bathtub.computeFloodMask` + `Bathtub.parseWaterLevel`) terpisah dari kode peta, dipakai browser dan diuji lewat Node
-- **Uji unit tanpa framework**: `node tests/test-simulation.js` — 23 kasus (grid hitungan tangan, sel NoData, NaN/Infinity, batas `<=`, sel ≤ 0, mask monoton, parser input valid/ kosong/ non-angka/ di luar rentang, input tidak valid)
+- **Uji unit tanpa framework**: `node tests/test-simulation.js` — 33 kasus (grid hitungan tangan, sel NoData, NaN/Infinity, batas `<=`, sel ≤ 0, mask monoton, parser input valid/ kosong/ non-angka/ di luar rentang, input tidak valid)
 
 Kontrol tinggi muka air (Mission 07):
 
@@ -162,7 +162,7 @@ Mission 07 — Water-Level Control:
 
 | Item | Hasil |
 |------|-------|
-| `node tests/test-simulation.js` — 23 kasus PASS, exit code 0 | PASS |
+| `node tests/test-simulation.js` — 33 kasus PASS, exit code 0 | PASS |
 | Slider −5 … 238 step 0,5; teks rentang "dibulatkan ke luar dari min -4,427 · maks 237,751" | PASS |
 | Sinkronisasi slider ↔ input numerik (dari kiri dan dari kanan); nilai awal 5; legend label "≤ 10" mengikuti | PASS |
 | Perubahan live tanpa reload: center/zoom peta identik sebelum–sesudah (slider 10, input 25, drag 12 nilai → nilai akhir 42) | PASS |
@@ -189,7 +189,7 @@ Mengikuti urutan mission di [`AGENTS.md`](AGENTS.md):
 | 05 | Visualize Elevation | ✅ selesai |
 | 06 | Bathtub Flood Overlay | ✅ selesai |
 | 07 | Water-Level Control | ✅ selesai |
-| 08 | Flooded Area Calculation | menunggu |
+| 08 | Flooded Area Calculation | ✅ selesai |
 | 09 | Legend & Metadata | menunggu |
 | 10 | Dashboard Shell | menunggu |
 | 11 | Layer Controls | menunggu |
