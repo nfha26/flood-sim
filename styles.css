@@ -257,6 +257,46 @@ body {
   border: 1px solid #ffc107;
   border-radius: 4px;
   font-size: 13px;
+  max-width: min(560px, calc(100vw - 24px));
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
+}
+
+#map-status.map-status-error {
+  background: #fdecea;
+  border-color: #d32f2f;
+  color: #611a15;
+}
+
+#map-status.map-status-info {
+  background: #fff3cd;
+  border-color: #ffc107;
+  color: #664d03;
+}
+
+#map-status ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+#map-status li {
+  margin: 2px 0;
+}
+
+#map-status li:first-child:only-child {
+  list-style: none;
+  margin: 0;
+  padding-left: 0;
+}
+
+#map-status-close {
+  margin-top: 6px;
+  padding: 2px 8px;
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  color: inherit;
+  cursor: pointer;
 }
 
 details summary {

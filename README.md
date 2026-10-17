@@ -34,7 +34,7 @@ Untuk menghentikan server: tutup jendela terminal, atau `Get-Process python | St
 
 ---
 
-## Struktur File (kondisi setelah Mission 07)
+## Struktur File (kondisi setelah Mission 13)
 
 ```text
 .
@@ -43,10 +43,12 @@ Untuk menghentikan server: tutup jendela terminal, atau `Get-Process python | St
 ├── README.md                      # berkas ini
 ├── index.html                     # halaman aplikasi; memuat Leaflet 1.9.4 + geotiff.js 3.0.5 dari CDN unpkg
 ├── styles.css                     # gaya: header + peta + panel metadata/legenda/kontrol + pesan status
-├── app.js                         # peta + DEM + color ramp + overlay genangan + kontrol tinggi muka air
+├── app.js                         # peta + DEM + color ramp + overlay genangan + kontrol + papan pesan status
 ├── simulation.js                  # model bathtub murni + parser input (tanpa peta) — diuji oleh tests/
+├── validation.js                  # validasi struktur/CRS/ukuran DEM + safePercent — diuji oleh tests/
 ├── tests/
-│   └── test-simulation.js         # uji unit Node tanpa framework: node tests/test-simulation.js
+│   ├── test-simulation.js         # uji unit Node tanpa framework: node tests/test-simulation.js (33 kasus)
+│   └── test-error-handling.js     # uji unit validasi DEM: node tests/test-error-handling.js (16 kasus)
 ├── .gitignore                     # mengabaikan config.local.js (untuk API key Google di masa depan)
 └── data/
     ├── DATA_SOURCES.md            # asal-usul & metadata DEM yang terverifikasi
@@ -59,7 +61,7 @@ Folder `skills/` belum dibuat — menyusul pada mission berikutnya sesuai urutan
 
 ---
 
-## Fitur yang Berfungsi Saat Ini (Mission 01–07)
+## Fitur yang Berfungsi Saat Ini (Mission 01–11, 13)
 
 Peta (Mission 01):
 
@@ -99,11 +101,32 @@ Kontrol tinggi muka air (Mission 07):
 - **Performa**: perhitungan dijadwalkan lewat `requestAnimationFrame` (maks satu perhitungan baru per frame saat digeser cepat) + **readout waktu** di panel: "Perhitungan terakhir: mask … ms · render … ms · total … ms" (terukur ±25–55 ms per update pada DEM 1247×684 ini)
 - **Legenda genangan mengikuti skenario**: label "Tergenang: elevasi ≤ X" ikut berubah; tidak ada tombol kunci khusus (user memilih: mengubah tinggi = mengubah genangan)
 
-Belum ada: hitungan luas tergenang, toggle khusus layer genangan, hillshade, pengalih basemap — mission berikutnya.
+Luas tergenang & ringkasan (Mission 08):
+
+- **Perhitungan luas tergenang per baris** dengan koreksi distorsi Web Mercator (`× cos² lintang`); penyebut = luas sel valid DEM (NoData dikeluarkan dari pembilang dan penyebut)
+- **Ringkasan simulasi** di sidebar: tinggi muka air skenario, luas (ha & km²), persentase ekstensi DEM + jumlah sel, metode, presisi/resolusi DEM, catatan skenario (bukan prakiraan; tanpa aliran/durasi/infiltrasi/drainase/hambatan; sel NoData dikecualikan)
+- Angka terverifikasi lintas alat (browser == rasterio Python): WL 5 → **364.501 sel (42,74%)**, luas **2.492,17 ha (≈ 24,922 km²)**
+
+Dashboard & kontrol layer (Mission 09–11):
+
+- **Tata letak dashboard**: sidebar kiri (judul, pemberitahuan permanen "simulasi edukasi sederhana", kontrol skenario, kontrol layer, ringkasan, metadata) + peta kanan
+- **Panel metadata** (Mission 09): 11 baris fakta terverifikasi dari file + catatan asal-usul & datum; detail dapat dibuka/tutup
+- **Kontrol layer** (Mission 11): checkbox tampil/sembunyi + slider opasitas untuk layer elevasi dan layer genangan; legenda mengikuti visibilitas
+- **Legenda** (Mission 09): swatch, label kelas, % per kelas, legenda genangan tersendiri dengan tinggi muka air skenario
+
+Error handling (Mission 13):
+
+- **Papan pesan status multi-pesan** (dedupe) di bawah header: varian error (merah) dan info (kuning), `aria-live`, tombol "Tutup"; tanpa teks exception mentah
+- **Guard pustaka CDN gagal** (Leaflet / geotiff.js / simulation.js): penjelasan + saran perbaikan; header dan pemberitahuan tetap terbaca; layer yang terpengaruh tidak ditampilkan, sisanya tetap berfungsi
+- **File DEM gagal dimuat** (404/HTTP/gangguan jaringan), **rusak/bukan GeoTIFF**, **data raster tak sesuai dimensi** → pesan jelas + panel metadata menampilkan penjelasan (atau metadata sebagian fakta yang memang terbaca)
+- **Validasi struktur & CRS sebelum render** (`validation.js`): batas aplikasi **50 MB** & **20 juta sel** (dicek sebelum parsing/readRasters agar halaman tidak membeku), dimensi/resolusi/origin wajib valid, **CRS wajib EPSG:3857** — gagal → layer elevasi tidak dibuat, metadata sebagian tetap tampil
+- **Tile OSM gagal** (mis. offline) → pesan info; peta dasar kosong, tetapi DEM/genangan/kontrol tetap berfungsi
+- **Semua-sel-NoData**: legenda menampilkan "—" (bukan NaN) + catatan; `Validation.safePercent` dipakai di legenda & ringkasan
+- **Uji unit**: `node tests/test-error-handling.js` — 16 kasus PASS
 
 ---
 
-## Hasil Verifikasi (Mission 01, 04–07, diverifikasi via BrowserOS)
+## Hasil Verifikasi (Mission 01, 04–08, 13, diverifikasi via BrowserOS)
 
 Mission 01 — First Map:
 
@@ -174,6 +197,26 @@ Mission 07 — Water-Level Control:
 | Console browser tanpa error/warning (console.debug timing saja) | PASS |
 | Review visual screenshot oleh agent | NOT VERIFIED (keterbatasan model; screenshot tersimpan di BrowserOS) |
 
+Mission 13 — Error Handling:
+
+| Item | Hasil |
+|------|-------|
+| `node tests/test-error-handling.js` — 16 kasus PASS, exit code 0 | PASS |
+| `node tests/test-simulation.js` — 33 kasus PASS (regresi, tidak diubah) | PASS |
+| Leaflet CDN diblokir → pesan jelas, header + pemberitahuan tetap terbaca, tanpa peta kosong tanpa keterangan | PASS |
+| geotiff.js CDN diblokir → pesan jelas; peta, OSM, metadata-note; layer DEM tidak ditampilkan | PASS |
+| simulation.js diblokir → pesan jelas; elevasi/legenda/metadata tetap; kontrol genangan & ringkasan tidak muncul | PASS |
+| File DEM diblokir (fetch gagal) → pesan "gangguan jaringan" atau "HTTP xxx" + saran; metadata-note; peta & pemberitahuan tetap | PASS |
+| GeoTIFF rusak (fromArrayBuffer melempar) → pesan "tidak dapat dibaca sebagai GeoTIFF"; metadata-note | PASS |
+| CRS selain EPSG:3857 (stub EPSG:32749) → pesan crs_mismatch + tindakan reproyeksi; metadata sebagian (6 baris fakta terbaca); overlay tidak dibuat | PASS |
+| Raster 20000×20000 (stub) → pesan batas 20 juta sel; readRasters tidak dipanggil (halaman tidak membeku) | PASS |
+| Tile OSM diblokir → pesan info (bukan error); DEM, genangan, ringkasan, metadata (11 baris) tetap berfungsi | PASS |
+| Tombol "Tutup" menyembunyikan papan pesan dan mengosongkan daftar | PASS |
+| Input WL "abc" → hint "Masukkan angka dalam rentang -5…238.", nilai dipulihkan; input valid menghapus hint (regresi Mission 07) | PASS |
+| Regresi normal: 2 overlay gambar, ringkasan 364.501 sel == hitungan Python, metadata 11 baris, legenda 7 baris, header notice, tanpa banner | PASS |
+| Console browser tanpa error/warning pada beban normal | PASS |
+| Review visual screenshot oleh agent | NOT VERIFIED (keterbatasan model; screenshot tersimpan di BrowserOS) |
+
 ---
 
 ## Peta Pengembangan
@@ -190,14 +233,16 @@ Mengikuti urutan mission di [`AGENTS.md`](AGENTS.md):
 | 06 | Bathtub Flood Overlay | ✅ selesai |
 | 07 | Water-Level Control | ✅ selesai |
 | 08 | Flooded Area Calculation | ✅ selesai |
-| 09 | Legend & Metadata | menunggu |
-| 10 | Dashboard Shell | menunggu |
-| 11 | Layer Controls | menunggu |
-| 12 | Rainfall Layer (opsional, NASA GIBS) | menunggu |
-| 13 | Error Handling | menunggu |
+| 09 | Legend & Metadata | ✅ selesai |
+| 10 | Dashboard Shell | ✅ selesai |
+| 11 | Layer Controls | ✅ selesai |
+| 12 | Rainfall Layer (opsional, NASA GIBS) | dilewati (keputusan pengguna) |
+| 13 | Error Handling | ✅ selesai |
 | 14 | Responsive Layout | menunggu |
 | 15 | Full Regression | menunggu |
 | 16 | Final Code Review | menunggu |
+
+**Catatan checklist regresi [`AGENTS.md`](AGENTS.md):** item **12** (rainfall layer) dan **13** (sinkronisasi tanggal/layer curah hujan) **tidak dikerjakan (keputusan pengguna)** — Mission 12 dilewati sehingga tidak ada layer curah hujan dalam aplikasi; item 13 checklist hanya berlaku bila rainfall dipakai. Seluruh item checklist lainnya diverifikasi pada mission masing-masing (tabel di atas) dan wajib diulang pada Mission 15 Full Regression.
 
 ---
 

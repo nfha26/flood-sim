@@ -50,7 +50,7 @@
           <p id="sim-note" class="panel-note"></p>
         </div>
       </section>
-      <section id="layers-section">
+      <section id="layers-section" hidden>
         <h2>Layer</h2>
         <section id="elev-controls-section">
           <h3>Layer Elevasi DEM</h3>
@@ -112,7 +112,10 @@
       </div>
     </div>
   </main>
-  <div id="map-status" hidden></div>
+  <div id="map-status" role="status" aria-live="polite" hidden>
+    <ul id="map-status-list"></ul>
+    <button id="map-status-close" type="button" aria-label="Tutup pesan status">Tutup</button>
+  </div>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
           integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
           crossorigin=""></script>
@@ -120,6 +123,7 @@
           integrity="sha384-QchpYxK+DqZYCChtK4SebrECTZEIQ0ahLhme9vwraN6KNxOGwtS66BG72wo1HQDN"
           crossorigin=""></script>
   <script src="simulation.js"></script>
+  <script src="validation.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
