@@ -141,6 +141,21 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+#flood-legend-section {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid #ccc;
+}
+
+#flood-legend-section h3 {
+  margin: 0 0 4px;
+  font-size: 13px;
+}
+
+.legend-swatch-flood {
+  background: rgba(21, 101, 192, 0.55);
+}
+
 #map-status {
   position: fixed;
   top: 70px;

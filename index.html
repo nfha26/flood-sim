@@ -34,10 +34,20 @@
       </div>
     </aside>
     <aside id="dem-legend" class="panel" hidden>
-      <h2>Legenda — Elevasi DEM</h2>
-      <p class="legend-unit">nilai DEM sumber — meter (DEMNAS, datum vertikal EGM2008)</p>
-      <div id="legend-rows"></div>
-      <p id="legend-note" class="panel-note"></p>
+      <section id="elev-legend-section" hidden>
+        <h2>Legenda — Elevasi DEM</h2>
+        <p class="legend-unit">nilai DEM sumber — meter (DEMNAS, datum vertikal EGM2008)</p>
+        <div id="legend-rows"></div>
+        <p id="legend-note" class="panel-note"></p>
+      </section>
+      <section id="flood-legend-section" hidden>
+        <h3>Legenda — Genangan (nilai uji)</h3>
+        <div class="legend-row">
+          <span class="legend-swatch legend-swatch-flood"></span>
+          <span class="legend-label">Tergenang: elevasi ≤ <span id="flood-legend-wl">—</span> (nilai DEM sumber)</span>
+        </div>
+        <p id="flood-note" class="panel-note"></p>
+      </section>
     </aside>
   </main>
   <div id="map-status" hidden></div>
@@ -47,6 +57,7 @@
   <script src="https://unpkg.com/geotiff@3.0.5/dist-browser/geotiff.js"
           integrity="sha384-QchpYxK+DqZYCChtK4SebrECTZEIQ0ahLhme9vwraN6KNxOGwtS66BG72wo1HQDN"
           crossorigin=""></script>
+  <script src="simulation.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

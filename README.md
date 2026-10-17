@@ -34,7 +34,7 @@ Untuk menghentikan server: tutup jendela terminal, atau `Get-Process python | St
 
 ---
 
-## Struktur File (kondisi setelah Mission 04)
+## Struktur File (kondisi setelah Mission 06)
 
 ```text
 .
@@ -42,8 +42,11 @@ Untuk menghentikan server: tutup jendela terminal, atau `Get-Process python | St
 ├── SPEC.md                        # spesifikasi produk dan kriteria penerimaan
 ├── README.md                      # berkas ini
 ├── index.html                     # halaman aplikasi; memuat Leaflet 1.9.4 + geotiff.js 3.0.5 dari CDN unpkg
-    ├── styles.css                     # gaya: header + peta + panel metadata/legenda/kontrol + pesan status
-    ├── app.js                         # peta Leaflet + OpenStreetMap + muat DEM + color ramp, legenda, toggle/opasitas
+├── styles.css                     # gaya: header + peta + panel metadata/legenda/kontrol + pesan status
+├── app.js                         # peta Leaflet + OpenStreetMap + muat DEM + color ramp, legenda, overlay genangan
+├── simulation.js                  # model bathtub murni (tanpa peta) — diuji oleh tests/
+├── tests/
+│   └── test-simulation.js         # uji unit Node tanpa framework: node tests/test-simulation.js
 ├── .gitignore                     # mengabaikan config.local.js (untuk API key Google di masa depan)
 └── data/
     ├── DATA_SOURCES.md            # asal-usul & metadata DEM yang terverifikasi
@@ -56,7 +59,7 @@ Folder `skills/` belum dibuat — menyusul pada mission berikutnya sesuai urutan
 
 ---
 
-## Fitur yang Berfungsi Saat Ini (Mission 01–05)
+## Fitur yang Berfungsi Saat Ini (Mission 01–06)
 
 Peta (Mission 01):
 
@@ -79,11 +82,20 @@ Elevasi (Mission 05):
 - **Kontrol layer**: checkbox tampil/sembunyi + slider **opasitas** (0–100%), tanpa reload dan tanpa reset peta; legenda mengikuti visibilitas layer
 - **Baris statis permanen** di header: "Simulasi edukasi sederhana, bukan prediksi."
 
-Belum ada: kontrol tinggi muka air, overlay banjir, legenda banjir, hillshade, pengalih basemap — mission berikutnya.
+Genangan (Mission 06):
+
+- **Overlay genangan model bathtub** di atas layer elevasi: `sel tergenang = elevasi ≤ tinggi muka air` — dihitung pertama kali dengan **tinggi muka air uji konstan = 5** (nilai DEM sumber); warna biru translusen (`#1565c0`, α 0,55)
+- Nilai 5 **bersifat SEMENTARA** dan ditandai jelas di legenda; Mission 07 menggantinya dengan kontrol interaktif
+- **Legenda genangan tersendiri**: swatch + label "Tergenang: elevasi ≤ 5 (nilai DEM sumber)" + catatan bahwa tinggi muka air bersifat uji, **relatif terhadap nilai DEM sumber** (meter; EGM2008 per spesifikasi produk BIG, file lokal tidak mendeklarasikan datum sendiri), bukan prakiraan; **sel NoData dikecualikan**
+- **Sel bernilai ≤ 0 ikut aturan biasa** (keputusan terdokumentasi) — lihat `data/DATA_SOURCES.md` sub-bab 1e
+- **Fungsi simulasi murni** `simulation.js` (`Bathtub.computeFloodMask`) terpisah dari kode peta, dipakai browser dan diuji lewat Node
+- **Uji unit tanpa framework**: `node tests/test-simulation.js` — 12 kasus (grid 3×3 hitungan tangan, sel NoData, NaN/Infinity, batas `<=`, sel ≤ 0, input tidak valid)
+
+Belum ada: kontrol tinggi muka air (slider), hitungan luas tergenang, toggle khusus layer genangan, hillshade, pengalih basemap — mission berikutnya.
 
 ---
 
-## Hasil Verifikasi (Mission 01 & 04, diverifikasi via BrowserOS)
+## Hasil Verifikasi (Mission 01, 04–06, diverifikasi via BrowserOS)
 
 Mission 01 — First Map:
 
@@ -124,6 +136,20 @@ Mission 05 — Visualize Elevation:
 | Console browser tanpa error/warning | PASS |
 | Review visual screenshot oleh agent | NOT VERIFIED (keterbatasan model; screenshot tersimpan di BrowserOS) |
 
+Mission 06 — Bathtub Flood Overlay:
+
+| Item | Hasil |
+|------|-------|
+| `node tests/test-simulation.js` — 12 kasus PASS, exit code 0 | PASS |
+| Jumlah sel tergenang di browser (**364.501** pada WL=5) identik dengan hitungan rasterio Python — verifikasi independen lintas alat | PASS |
+| Overlay genangan di atas overlay elevasi (2 layer; piksel -2,78 → biru α140; piksel 9,67 dan 87,42 → transparan) | PASS |
+| Sel valid positif (0,099 ≤ 5) ikut tergenang — aturan `<=` berlaku untuk sel di atas 0, bukan hanya sel ≤ 0 | PASS |
+| Legenda genangan: label WL "5", catatan SEMENTARA + "relatif terhadap nilai DEM sumber"; legenda elevasi tetap 7 baris | PASS |
+| Toggle elevasi mati: hanya section elevasi + overlay DEM hilang; genangan tetap; center/zoom tak berubah; tanpa reload | PASS |
+| Regresi Mission 01–05 (metadata 11 baris identik Python, warna ramp, disclaimer) | PASS |
+| Console browser tanpa error/warning | PASS |
+| Review visual screenshot oleh agent | NOT VERIFIED (keterbatasan model; screenshot tersimpan di BrowserOS) |
+
 ---
 
 ## Peta Pengembangan
@@ -137,7 +163,7 @@ Mengikuti urutan mission di [`AGENTS.md`](AGENTS.md):
 | 03 | Research & Document Data Sources | ✅ selesai |
 | 04 | Load DEM and Verify Metadata | ✅ selesai |
 | 05 | Visualize Elevation | ✅ selesai |
-| 06 | Bathtub Flood Overlay | menunggu |
+| 06 | Bathtub Flood Overlay | ✅ selesai |
 | 07 | Water-Level Control | menunggu |
 | 08 | Flooded Area Calculation | menunggu |
 | 09 | Legend & Metadata | menunggu |
@@ -163,9 +189,10 @@ Persiapan data DEM memakai Python (rasterio + pyproj) di luar aplikasi web — l
 
 ---
 
-## Catatan Data (Mission 04–05)
+## Catatan Data (Mission 04–06)
 
 - Satuan elevasi **meter** dan datum vertikal **EGM2008** — diverifikasi dari spesifikasi resmi BIG (layanan `geoservices.big.go.id` + halaman produk `big.go.id`, diakses 17 Okt 2026); file lokal tidak mendeklarasikannya sendiri. Rincian di [`data/DATA_SOURCES.md`](data/DATA_SOURCES.md) sub-bab 1c.
 - Turunan memakai ekstensi `.geotiff` (bukan `.tif`) karena browser agent BrowserOS mengembalikan HTTP 204 untuk ekstensi `.tif`/`.tiff`/`.pdf`; isi file tetap GeoTIFF standar.
-- 32,07% sel DEM bernilai ≤ 0 (mewakili perairan/dasar laut) — sebaran nilai lengkap ada di `data/DATA_SOURCES.md` sub-bab 1e.
+- 32,07% sel DEM bernilai ≤ 0 — di bawah acuan datum, ikut aturan simulasi seperti sel lain. BIG menyatakan DEMNAS mencakup topografi dasar laut (catatan sumber: `data/DATA_SOURCES.md` sub-bab 1e); sebaran nilai lengkap ada di sub-bab yang sama.
+- Tinggi muka air **5** pada Mission 06 adalah **nilai uji konstan sementara**, relatif terhadap nilai DEM sumber — bukan observasi dan bukan prakiraan; Mission 07 mengganti dengan kontrol.
 - Detail asal-usul, ekstraksi nilai, dan SHA-256 ada di [`data/DATA_SOURCES.md`](data/DATA_SOURCES.md).

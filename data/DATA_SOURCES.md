@@ -4,7 +4,7 @@ Berkas ini mencatat asal-usul dan metadata data yang dipakai di proyek ini.
 Aturan mainnya (lihat `AGENTS.md`): **jangan mengarang nilai**. Field yang tidak bisa
 diverifikasi dari file atau dari pernyataan tertulis pengguna ditulis **"belum diketahui"**.
 
-Status penulisan: terakhir diperbarui pada Mission 05 (Visualize Elevation).
+Status penulisan: terakhir diperbarui pada Mission 06 (Bathtub Flood Overlay).
 
 ---
 
@@ -88,13 +88,14 @@ Bbox ini **terverifikasi berada di dalam** ekstensi DEM induk (margin 16,7 km di
 | Ekstensi (WGS84) | barat 113,64938 · selatan -7,75952 · timur 113,74285 · utara -7,70872 |
 | NoData | -3.4028234663852886e+38 (sama dengan induk) |
 | Tipe data | Float32 (presisi nilai dipertahankan; tidak dikuantisasi ke integer) |
-| Nilai valid (dari file turunan) | min -4,427 · maks 237,751 · rerata 13,226 — **satuan mewarisi status "belum diketahui"** dari induk |
+| Nilai valid (dari file turunan) | min -4,427 · maks 237,751 · rerata 13,226 — satuan meter, datum EGM2008 (verifikasi produk, lihat 1c) |
 | Alat | Python 3.12.5, rasterio 1.3.11, pyproj 3.7.0, numpy 2.1.3 (env `PROJ_DATA` diarahkan ke proj_data bawaan rasterio karena `PROJ_LIB` sistem memuat data PostGIS yang tidak lengkap) |
 
 **Pernyataan jujur tentang turunan ini:** nilai elevasi mengalami interpolasi bilinear saat
-reproyeksi (perpindahan grid UTM → Mercator), sehingga nilainya bukan salinan piksel-mentah
-induk; resolusi ground efektif sedikit berbeda; satuan elevasi dan datum vertikal tetap
-"belum diketahui" seperti induk.
+reprojeksi (perpindahan grid UTM → Mercator), sehingga nilainya bukan salinan piksel-mentah
+induk; resolusi ground efektif sedikit berbeda; satuan dan datum vertikal diwarisi dari produk
+(meter / EGM2008 per verifikasi produk di 1c) tetapi **tidak dideklarasikan di dalam file
+turunan ini**.
 
 **Titik uji (untuk verifikasi lintas-alat):**
 
@@ -139,6 +140,10 @@ wilayah studi; BIG menyatakan DEMNAS mencakup topografi dasar laut (berita BIG, 
 menghasilkan 7 kelas dengan kumulatif 32,07% · 60,98% · 86,56% · 94,90% · 97,53% · 99,00% —
 dipilih agar sebaran warna terbaca pada distribusi yang miring (median 6,871). Titik patah dan
 warna adalah konstanta tampilan di `app.js`, bukan nilai data.
+
+**Keputusan simulasi (Mission 06, disetujui pengguna):** sel bernilai ≤ 0 diperlakukan sama
+seperti sel lain — ikut aturan `elevasi ≤ tinggi muka air` (tanpa pengecualian, tanpa label
+per sel di UI). NoData tetap dikecualikan dan tidak pernah dianggap elevasi 0.
 
 ---
 

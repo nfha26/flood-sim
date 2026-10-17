@@ -21,6 +21,12 @@ osmLayer.addTo(map);
 const DEM_URL = 'data/DEMNAS_ok_besuki.geotiff';
 const KNOWN_NODATA_FALLBACK = -3.4028234663852886e38;
 
+// SEMENTARA — nilai tinggi muka air uji yang konstan (nilai DEM sumber, meter).
+// Mission 07 (Water-Level Control) mengganti nilai ini dengan kontrol interaktif.
+const TEST_WATER_LEVEL = 5;
+const FLOOD_COLOR = '#1565c0';
+const FLOOD_ALPHA = 0.55;
+
 function toLatLng(x, y) {
   return L.CRS.EPSG3857.unproject(L.point(x, y));
 }
@@ -116,6 +122,32 @@ function renderElevation(data, width, height, nodata) {
   };
 }
 
+function renderFloodMask(mask, width, height) {
+  const rgb = hexToRgb(FLOOD_COLOR);
+  const alpha = Math.round(FLOOD_ALPHA * 255);
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  const imageData = ctx.createImageData(width, height);
+  for (let i = 0; i < mask.length; i++) {
+    if (!mask[i]) continue;
+    const p = i * 4;
+    imageData.data[p] = rgb[0];
+    imageData.data[p + 1] = rgb[1];
+    imageData.data[p + 2] = rgb[2];
+    imageData.data[p + 3] = alpha;
+  }
+  ctx.putImageData(imageData, 0, 0);
+  return canvas.toDataURL('image/png');
+}
+
+function refreshLegendPanel() {
+  const elevHidden = document.getElementById('elev-legend-section').hidden;
+  const floodHidden = document.getElementById('flood-legend-section').hidden;
+  document.getElementById('dem-legend').hidden = elevHidden && floodHidden;
+}
+
 function buildLegend(elevation) {
   const rowsEl = document.getElementById('legend-rows');
   rowsEl.innerHTML = '';
@@ -140,7 +172,20 @@ function buildLegend(elevation) {
   document.getElementById('legend-note').textContent =
     'Biru menandai nilai DEM ≤ 0 — ' + seaPct + '% sel. DEMNAS mencakup topografi dasar laut (BIG). ' +
     'Asal-usul data dan verifikasi satuan: data/DATA_SOURCES.md.';
-  document.getElementById('dem-legend').hidden = false;
+  document.getElementById('elev-legend-section').hidden = false;
+  refreshLegendPanel();
+}
+
+function buildFloodLegend(waterLevel) {
+  document.getElementById('flood-legend-wl').textContent = String(waterLevel);
+  document.getElementById('flood-note').textContent =
+    'Tinggi muka air uji (SEMENTARA): ' + waterLevel +
+    ' — relatif terhadap nilai DEM sumber (meter; EGM2008 per spesifikasi produk BIG, ' +
+    'file lokal tidak mendeklarasikan datum sendiri). Bukan prakiraan; tanpa aliran, durasi, ' +
+    'infiltrasi, dan drainase. Sel NoData dikecualikan. ' +
+    'Mission 07 mengganti nilai ini dengan kontrol interaktif.';
+  document.getElementById('flood-legend-section').hidden = false;
+  refreshLegendPanel();
 }
 
 function initDemControls(overlay) {
@@ -154,7 +199,8 @@ function initDemControls(overlay) {
     } else {
       map.removeLayer(overlay);
     }
-    document.getElementById('dem-legend').hidden = !toggle.checked;
+    document.getElementById('elev-legend-section').hidden = !toggle.checked;
+    refreshLegendPanel();
   });
   slider.value = 100;
   sliderValue.textContent = '100%';
@@ -220,6 +266,19 @@ async function loadDem() {
   map.fitBounds(overlay.getBounds());
   buildLegend(elevation);
   initDemControls(overlay);
+
+  if (typeof Bathtub === 'undefined') {
+    showStatus('Pustaka simulasi (simulation.js) gagal dimuat — overlay genangan tidak dibuat.');
+  } else {
+    const flood = Bathtub.computeFloodMask(data, nodata, TEST_WATER_LEVEL);
+    if (flood === null) {
+      showStatus('Nilai tinggi muka air uji tidak valid — overlay genangan tidak dibuat.');
+    } else {
+      const floodOverlay = L.imageOverlay(renderFloodMask(flood.mask, width, height), overlay.getBounds());
+      floodOverlay.addTo(map);
+      buildFloodLegend(TEST_WATER_LEVEL);
+    }
+  }
 
   let geoKeys = {};
   try {
