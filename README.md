@@ -34,7 +34,7 @@ Untuk menghentikan server: tutup jendela terminal, atau `Get-Process python | St
 
 ---
 
-## Struktur File (kondisi setelah Mission 13)
+## Struktur File (kondisi setelah Mission 14)
 
 ```text
 .
@@ -61,7 +61,7 @@ Folder `skills/` belum dibuat — menyusul pada mission berikutnya sesuai urutan
 
 ---
 
-## Fitur yang Berfungsi Saat Ini (Mission 01–11, 13)
+## Fitur yang Berfungsi Saat Ini (Mission 01–11, 13–14)
 
 Peta (Mission 01):
 
@@ -123,6 +123,14 @@ Error handling (Mission 13):
 - **Tile OSM gagal** (mis. offline) → pesan info; peta dasar kosong, tetapi DEM/genangan/kontrol tetap berfungsi
 - **Semua-sel-NoData**: legenda menampilkan "—" (bukan NaN) + catatan; `Validation.safePercent` dipakai di legenda & ringkasan
 - **Uji unit**: `node tests/test-error-handling.js` — 16 kasus PASS
+
+Responsive layout (Mission 14):
+
+- **Tiga tier tata letak**: desktop ≥ 901px (sidebar kiri 340px + peta kanan); tablet ≤ 900px (peta di atas, sidebar di bawah, maks sidebar 40vh — peta mengisi sisa ruang, tanpa tinggi tetap 60vh yang berpotensi melebihi viewport); ponsel ≤ 480px (header/padding lebih ringkas, tinggi peta minimum 240px)
+- **Area sentuh ≥ 44px** pada perangkat sentuh (`@media (pointer: coarse)`): slider, baris checkbox, input numerik, tombol basemap, tombol Tutup, ringkasan metadata; thumb slider 28px
+- **Tanpa gulir horizontal** di semua lebar teruji (`overflow-x` pengaman + pencegahan penyebab); teks metadata panjang membungkus (`overflow-wrap`)
+- **`invalidateSize` terdebounce 150ms** saat `resize` jendela (`pan: false`); **tanpa** `fitBounds`/`setView` ulang — center/zoom pilihan pengguna dipertahankan (terverifikasi: setView [-7,7341; 113,6961] zoom 12 identik setelah resize 1024→390→1024; hanya `invalidateSize` yang terpanggil)
+- Pemeriksaan `window.innerWidth <= 900` untuk padding `fitBounds` tetap hanya saat load DEM (satu kali, konsisten dengan breakpoint CSS 900px)
 
 ---
 
@@ -217,6 +225,24 @@ Mission 13 — Error Handling:
 | Console browser tanpa error/warning pada beban normal | PASS |
 | Review visual screenshot oleh agent | NOT VERIFIED (keterbatasan model; screenshot tersimpan di BrowserOS) |
 
+Mission 14 — Responsive Layout:
+
+| Item | Lebar | Hasil |
+|------|-------|-------|
+| Layout desktop side-by-side (sidebar 340px kiri, peta kanan) | 1440, 1024 | PASS |
+| Layout stacked (kolum; peta di atas, sidebar di bawah) | 768, 390 | PASS |
+| Tidak ada gulir horizontal (`scrollWidth <= clientWidth`) | 1440, 1024, 768, 390 | PASS |
+| Tidak ada elemen melampaui viewport (selain tile Leaflet internal yang ter-clip wajar) | 1440, 1024, 768, 390 | PASS |
+| Teks tidak terpotong (header, legenda, catatan, dt/dd, tombol) | 1440, 1024, 768, 390 | PASS |
+| Area sentuh ≥ 44px (`pointer: coarse`: slider, baris checkbox, opasitas, tombol, summary metadata) | 768, 390 | PASS |
+| DEM termuat (legenda 7 baris, metadata 11 baris) | 1440, 1024, 768, 390 | PASS |
+| Resize lintas breakpoint: peta menyesuaikan via `invalidateSize`; center/zoom tidak direset; tanpa `fitBounds`/`setView` ulang | 1024 ↔ 390 ↔ 1440 | PASS |
+| Regresi fungsi: WL 25 → 738.292 sel (86,56%) identik nilai Mission 07; toggle elevasi menyembunyikan section elevasi, genangan tetap; disclaimer tampil | 390 | PASS |
+| Console browser tanpa error/warning | semua lebar | PASS |
+| `node tests/test-simulation.js` — 33 PASS, exit 0 | — | PASS |
+| `node tests/test-error-handling.js` — 16 PASS, exit 0 | — | PASS |
+| Review visual screenshot oleh agent | — | NOT VERIFIED (keterbatasan model; screenshot tersimpan di BrowserOS) |
+
 ---
 
 ## Peta Pengembangan
@@ -238,7 +264,7 @@ Mengikuti urutan mission di [`AGENTS.md`](AGENTS.md):
 | 11 | Layer Controls | ✅ selesai |
 | 12 | Rainfall Layer (opsional, NASA GIBS) | dilewati (keputusan pengguna) |
 | 13 | Error Handling | ✅ selesai |
-| 14 | Responsive Layout | menunggu |
+| 14 | Responsive Layout | ✅ selesai |
 | 15 | Full Regression | menunggu |
 | 16 | Final Code Review | menunggu |
 

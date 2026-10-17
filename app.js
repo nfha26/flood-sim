@@ -61,6 +61,17 @@ if (typeof L === 'undefined') {
 function initApp() {
   const map = L.map('map').setView([-2.5, 118], 5);
 
+  // Mission 14 — Responsive Layout: hitung ulang ukuran peta saat jendela berubah.
+  // Hanya invalidateSize (pan: false); tanpa fitBounds agar posisi/zoom pilihan pengguna tidak direset.
+  // Ambang 900 sama dengan breakpoint di styles.css.
+  let resizeTimer = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      map.invalidateSize({ pan: false, debounceMoveend: true });
+    }, 150);
+  });
+
   const osmLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
     attribution:

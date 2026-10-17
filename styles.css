@@ -4,6 +4,10 @@ body {
   margin: 0;
 }
 
+html {
+  overflow-x: hidden;
+}
+
 body {
   display: flex;
   flex-direction: column;
@@ -19,6 +23,7 @@ body {
 .app-header h1 {
   margin: 0;
   font-size: 18px;
+  overflow-wrap: break-word;
 }
 
 .disclaimer {
@@ -115,6 +120,7 @@ body {
 .sidebar dd {
   margin: 0 0 2px;
   word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .panel-note {
@@ -310,12 +316,69 @@ details summary {
     flex-direction: column;
   }
   .sidebar {
+    order: 2;
     width: 100%;
     max-height: 40vh;
     border-right: none;
-    border-bottom: 1px solid #ddd;
+    border-top: 1px solid #ddd;
   }
   .map-container {
-    height: 60vh;
+    order: 1;
+    flex: 1 1 auto;
+    min-height: 280px;
+  }
+  .control-row {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-header {
+    padding: 8px 12px;
+  }
+  .app-header h1 {
+    font-size: 16px;
+  }
+  .sidebar {
+    padding: 8px;
+  }
+  .sidebar section {
+    padding: 8px;
+  }
+  .map-container {
+    min-height: 240px;
+  }
+}
+
+@media (pointer: coarse) {
+  .control-row {
+    min-height: 44px;
+  }
+  .control-row input[type="range"] {
+    min-height: 44px;
+  }
+  .control-row input[type="number"] {
+    min-height: 44px;
+  }
+  input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+  }
+  .basemap-btn,
+  #map-status-close {
+    min-height: 44px;
+  }
+  details summary {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+  .control-row input[type="range"]::-webkit-slider-thumb {
+    width: 28px;
+    height: 28px;
+  }
+  .control-row input[type="range"]::-moz-range-thumb {
+    width: 28px;
+    height: 28px;
   }
 }
